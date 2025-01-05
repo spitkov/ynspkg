@@ -29,22 +29,38 @@ PackageManager::PackageManager() {
 
 bool PackageManager::download_file(const std::string& url, const std::string& output_path) {
     CURL* curl = curl_easy_init();
-    if (!curl) return false;
+    if (!curl) {
+        print_error("Failed to initialize CURL");
+        return false;
+    }
     
     std::string response_data;
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_data);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    
+    char error_buffer[CURL_ERROR_SIZE];
+    curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error_buffer);
     
     CURLcode res = curl_easy_perform(curl);
     curl_easy_cleanup(curl);
     
-    if (res != CURLE_OK) return false;
+    if (res != CURLE_OK) {
+        print_error("Failed to download: " + std::string(error_buffer));
+        return false;
+    }
     
-    std::ofstream output_file(output_path);
-    if (!output_file) return false;
+    std::ofstream output_file(output_path, std::ios::trunc);
+    if (!output_file) {
+        print_error("Failed to open file for writing: " + output_path);
+        return false;
+    }
     
     output_file << response_data;
+    output_file.close();
     return true;
 }
 
@@ -65,21 +81,37 @@ bool PackageManager::execute_script(const std::string& script_path) {
 
 bool PackageManager::cache_repo() {
     print_progress("Updating package cache", 0);
+    
     if (!download_file(REPO_URL, CACHE_FILE)) {
-        print_error("Failed to download repository data");
         return false;
     }
-    print_progress("Updating package cache", 100);
-    print_success("Package cache updated successfully");
-    return true;
+    
+    try {
+        std::ifstream cache_file(CACHE_FILE);
+        if (!cache_file) {
+            print_error("Failed to read downloaded cache file");
+            return false;
+        }
+        repo_cache = json::parse(cache_file);
+        print_progress("Updating package cache", 100);
+        print_success("Package cache updated successfully");
+        return true;
+    } catch (const std::exception& e) {
+        print_error("Failed to parse repository data: " + std::string(e.what()));
+        return false;
+    }
 }
 
 json PackageManager::read_cache() {
     try {
         std::ifstream cache_file(CACHE_FILE);
-        if (!cache_file) return json::object();
+        if (!cache_file) {
+            print_error("Cache not found. Run 'yns update' first");
+            return json::object();
+        }
         return json::parse(cache_file);
-    } catch (...) {
+    } catch (const std::exception& e) {
+        print_error("Failed to read cache: " + std::string(e.what()));
         return json::object();
     }
 }
@@ -376,5 +408,43 @@ bool PackageManager::interactive_mode() {
             print_error("Unknown command '" + command + "'. Type 'help' for available commands.");
         }
     }
+    return true;
+}
+
+bool PackageManager::debug() {
+    std::cout << "\nRepository URL: " << REPO_URL << "\n";
+    std::cout << "Cache file: " << CACHE_FILE << "\n";
+    std::cout << "Installed DB: " << INSTALLED_DB << "\n\n";
+
+    std::cout << "Cache contents:\n";
+    std::cout << "===============\n";
+    try {
+        std::ifstream cache_file(CACHE_FILE);
+        if (!cache_file) {
+            print_error("Cache file not found");
+            return false;
+        }
+        json cache = json::parse(cache_file);
+        std::cout << cache.dump(2) << "\n\n";
+    } catch (const std::exception& e) {
+        print_error("Failed to read cache: " + std::string(e.what()));
+        return false;
+    }
+
+    std::cout << "Installed packages:\n";
+    std::cout << "==================\n";
+    try {
+        std::ifstream db_file(INSTALLED_DB);
+        if (!db_file) {
+            print_error("No installed packages database found");
+            return false;
+        }
+        json db = json::parse(db_file);
+        std::cout << db.dump(2) << "\n";
+    } catch (const std::exception& e) {
+        print_error("Failed to read installed packages: " + std::string(e.what()));
+        return false;
+    }
+
     return true;
 } 

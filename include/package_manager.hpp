@@ -16,6 +16,7 @@ public:
     bool upgrade(const std::string& package_name);
     bool list();
     bool interactive_mode();
+    bool debug();
     
 private:
     static constexpr const char* REPO_URL = "https://raw.githubusercontent.com/spitkov/ynsrepo/refs/heads/main/repo.json";

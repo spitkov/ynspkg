@@ -12,6 +12,7 @@ void print_usage() {
               << "  remove <package>    Remove a package\n"
               << "  upgrade <package>   Upgrade a package\n"
               << "  list               List all packages\n"
+              << "  debug              Show debug information\n"
               << "  interactive        Start interactive mode\n\n"
               << "Interactive Mode:\n"
               << "  Run 'yns interactive' to enter interactive mode where you can\n"
@@ -22,7 +23,8 @@ void print_usage() {
 bool needs_sudo(const std::string& command) {
     return command == "update" || command == "install" || 
            command == "remove" || command == "upgrade" || 
-           command == "interactive" || command == "list";
+           command == "interactive" || command == "list" ||
+           command == "debug";
 }
 
 std::string get_self_path() {
@@ -60,6 +62,9 @@ int main(int argc, char* argv[]) {
         }
         else if (command == "list") {
             return pm.list() ? 0 : 1;
+        }
+        else if (command == "debug") {
+            return pm.debug() ? 0 : 1;
         }
         else if (command == "interactive") {
             return pm.interactive_mode() ? 0 : 1;
