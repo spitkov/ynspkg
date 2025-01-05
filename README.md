@@ -40,6 +40,8 @@ yns upgrade <package>   # Upgrade package
 yns list               # List packages
 yns debug              # Show debug info
 yns interactive        # Interactive mode
+yns version            # Show YNS version
+yns updateyns          # Update YNS to latest version
 ```
 
 ## Package Format

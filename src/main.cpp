@@ -13,7 +13,9 @@ void print_usage() {
               << "  upgrade <package>   Upgrade a package\n"
               << "  list               List all packages\n"
               << "  debug              Show debug information\n"
-              << "  interactive        Start interactive mode\n\n"
+              << "  interactive        Start interactive mode\n"
+              << "  version            Show YNS version\n"
+              << "  updateyns          Update YNS to latest version\n\n"
               << "Interactive Mode:\n"
               << "  Run 'yns interactive' to enter interactive mode where you can\n"
               << "  execute multiple commands without prefix. Type 'help' in\n"
@@ -24,7 +26,7 @@ bool needs_sudo(const std::string& command) {
     return command == "update" || command == "install" || 
            command == "remove" || command == "upgrade" || 
            command == "interactive" || command == "list" ||
-           command == "debug";
+           command == "debug" || command == "version" || command == "updateyns";
 }
 
 std::string get_self_path() {
@@ -35,67 +37,52 @@ std::string get_self_path() {
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        print_usage();
+        std::cerr << "Error: No command provided" << std::endl;
+        std::cout << "Usage: yns <command> [package_name]" << std::endl;
         return 1;
     }
 
     std::string command = argv[1];
-    
-    if (needs_sudo(command) && geteuid() != 0) {
-        std::string self = get_self_path();
-        std::string sudo_cmd = "sudo " + self;
-        
-        for (int i = 1; i < argc; i++) {
-            sudo_cmd += " ";
-            sudo_cmd += argv[i];
-        }
-        
-        std::cout << "This operation requires root privileges.\n";
-        return system(sudo_cmd.c_str());
-    }
-
     PackageManager pm;
 
     try {
         if (command == "update") {
-            return pm.update() ? 0 : 1;
-        }
-        else if (command == "list") {
-            return pm.list() ? 0 : 1;
-        }
-        else if (command == "debug") {
-            return pm.debug() ? 0 : 1;
-        }
-        else if (command == "interactive") {
-            return pm.interactive_mode() ? 0 : 1;
-        }
-        else if (command == "install" || command == "remove" || command == "upgrade") {
-            if (argc < 3) {
-                std::cerr << "Error: Package name required for " << command << " command\n";
-                print_usage();
-                return 1;
-            }
-            
-            std::string package_name = argv[2];
-            
-            if (command == "install") {
-                return pm.install(package_name) ? 0 : 1;
-            }
-            else if (command == "remove") {
-                return pm.remove(package_name) ? 0 : 1;
-            }
-            else {
-                return pm.upgrade(package_name) ? 0 : 1;
-            }
-        }
-        else {
-            std::cerr << "Error: Unknown command '" << command << "'\n";
-            print_usage();
+            pm.update();
+        } else if (command == "install" && argc == 3) {
+            pm.install(argv[2]);
+        } else if (command == "remove" && argc == 3) {
+            pm.remove(argv[2]);
+        } else if (command == "upgrade" && argc == 3) {
+            pm.upgrade(argv[2]);
+        } else if (command == "list") {
+            pm.list();
+        } else if (command == "debug") {
+            pm.debug();
+        } else if (command == "interactive") {
+            pm.interactive_mode();
+        } else if (command == "version") {
+            pm.version();
+        } else if (command == "updateyns") {
+            pm.updateYns();
+        } else {
+            std::cerr << "Error: Unknown command '" << command << "'" << std::endl;
+            std::cout << "Usage: yns <command> [package_name]" << std::endl;
+            std::cout << "\nCommands:\n";
+            std::cout << "  update              Update package cache\n";
+            std::cout << "  install <package>   Install a package\n";
+            std::cout << "  remove <package>    Remove a package\n";
+            std::cout << "  upgrade <package>   Upgrade a package\n";
+            std::cout << "  list               List all packages\n";
+            std::cout << "  debug              Show debug information\n";
+            std::cout << "  interactive        Start interactive mode\n";
+            std::cout << "  version            Show YNS version\n";
+            std::cout << "  updateyns          Update YNS to latest version\n";
             return 1;
         }
-    }
-    catch (const std::exception& e) {
-        std::cerr << "\033[31mError: " << e.what() << "\033[0m\n";
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
         return 1;
     }
+
+    return 0;
 } 

@@ -8,6 +8,8 @@ using json = nlohmann::json;
 
 class PackageManager {
 public:
+    static constexpr const char* VERSION = "1.1";
+    
     PackageManager();
     
     bool update();
@@ -17,6 +19,8 @@ public:
     bool list();
     bool interactive_mode();
     bool debug();
+    void version();
+    void updateYns();
     
 private:
     static constexpr const char* REPO_URL = "https://raw.githubusercontent.com/spitkov/ynsrepo/refs/heads/main/repo.json";
@@ -34,6 +38,7 @@ private:
     void print_error(const std::string& message);
     void print_success(const std::string& message);
     void print_interactive_help();
+    bool confirm_action(const std::string& action);
     
     json repo_cache;
     json installed_packages;
