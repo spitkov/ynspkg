@@ -6,14 +6,25 @@ Simple package manager for Linux. Uses JSON for package definitions.
 
 Install dependencies:
 ```bash
-sudo apt-get install build-essential cmake libssl-dev zlib1g-dev
+sudo apt-get install build-essential cmake libssl-dev zlib1g-dev nlohmann-json3-dev
 ```
 
-We build our own curl to make a static binary that works everywhere without dependencies.
+We build our own curl because the system's libcurl is usually only available as a dynamic library. Building our own lets us:
+- Create a static binary that works everywhere
+- Include only the features we need (HTTP support)
+- Avoid dependency problems during static linking
 
 Build steps:
 ```bash
-bash build_curl.sh
+# Get the code
+git clone https://github.com/spitkov/ynspkg.git
+cd ynspkg
+
+# Build static curl
+chmod +x build_curl.sh
+./build_curl.sh
+
+# Build yns
 mkdir build && cd build
 cmake ..
 make
