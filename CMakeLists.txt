@@ -1,38 +1,31 @@
 cmake_minimum_required(VERSION 3.10)
-project(yns VERSION 1.0)
+project(yns)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Find required packages
-find_package(CURL REQUIRED)
-find_package(nlohmann_json REQUIRED)
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+set(BUILD_SHARED_LIBS OFF)
+set(CMAKE_EXE_LINKER_FLAGS "-static")
 
-# Add executable
-add_executable(yns 
+set(CURL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/deps/install/include")
+set(CURL_LIBRARY "${CMAKE_SOURCE_DIR}/deps/install/lib/libcurl.a")
+
+find_package(OpenSSL REQUIRED)
+find_package(ZLIB REQUIRED)
+
+add_executable(yns
     src/main.cpp
-    src/package_manager.cpp
-)
+    src/package_manager.cpp)
 
-# Include directories
 target_include_directories(yns PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CURL_INCLUDE_DIRS}
-)
+    ${CMAKE_SOURCE_DIR}/include
+    ${CURL_INCLUDE_DIR})
 
-# Link libraries
-target_link_libraries(yns PRIVATE 
-    ${CURL_LIBRARIES}
-    nlohmann_json::nlohmann_json
-)
-
-# Installation
-install(TARGETS yns DESTINATION bin)
-
-# Create required directories during installation
-install(CODE "
-    execute_process(
-        COMMAND mkdir -p /var/cache/yns
-        COMMAND mkdir -p /var/lib/yns
-    )
-") 
+target_link_libraries(yns PRIVATE
+    ${CURL_LIBRARY}
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    ZLIB::ZLIB
+    -static
+    -pthread)
